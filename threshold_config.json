@@ -1,0 +1,6 @@
+{
+	"global_default":15,
+	"custom_limits":{
+		"Download_20": 50
+		}
+}

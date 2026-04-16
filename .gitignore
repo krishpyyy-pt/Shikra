@@ -1,0 +1,12 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# If you ever create a virtual environment, ignore it
+venv/
+env/
+APi_test/
+
+# System files
+.DS_Store
