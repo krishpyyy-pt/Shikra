@@ -30,32 +30,28 @@ def get_threshold(api_id):
             return custom_limits.get(api_id, global_default)
     except:
         return 15 # Absolute fallback if file is missing/broken
-
 def trigger_os_alert(api_id, suspect_ip, call_count):
-    """Triggers a native desktop notification across any Linux distribution."""
     title = f"🚨 Shikra Alert: {api_id}"
     message = f"Mass call spike detected!\nSuspect IP: {suspect_ip}\nCalls: {call_count}"
     
+    # Build environment with display session info
+    import os
+    env = os.environ.copy()
+    env.setdefault("DISPLAY", ":0")
+    uid = str(os.getuid())
+    env.setdefault("DBUS_SESSION_BUS_ADDRESS", f"unix:path=/run/user/{uid}/bus")
+    
     try:
-        # 1. Try notify-send (Standard for GNOME, XFCE, Cinnamon, Mate)
         if shutil.which("notify-send"):
-            subprocess.Popen(['notify-send', '-u', 'critical', title, message])
-            
-        # 2. Try kdialog (Standard for KDE Plasma desktop environments)
+            subprocess.Popen(['notify-send', '-u', 'critical', title, message], env=env)
         elif shutil.which("kdialog"):
-            subprocess.Popen(['kdialog', '--passivepopup', message, '10', '--title', title])
-            
-        # 3. Try zenity (A universal fallback on many Linux systems)
+            subprocess.Popen(['kdialog', '--passivepopup', message, '10', '--title', title], env=env)
         elif shutil.which("zenity"):
-            subprocess.Popen(['zenity', '--notification', f'--text={title}\n{message}'])
-            
-        # 4. Headless Server Fallback (If running on a cloud server with no UI)
+            subprocess.Popen(['zenity', '--notification', f'--text={title}\n{message}'], env=env)
         else:
             print(f"\n[CRITICAL] {title} - {message}\n")
-            
     except Exception as e:
         print(f"[-] Failed to send OS notification: {e}")
-
 def sync_data():
     api_call_keys = r.keys("api:*calls")
     
@@ -82,7 +78,7 @@ def sync_data():
             top_ip, score = top_ip_data[0]
             update_fields["metrics.top_caller.ip"] = top_ip
             update_fields["metrics.top_caller.type"] = classify_ip_add(top_ip)
-	r.delete(f"api{api_id}:ips")
+            r.delete(f"api{api_id}:ips")
         # --- C. DATABASE UPDATE ---
         inventory.update_one(
             {"api_id": api_id},
