@@ -61,7 +61,12 @@ def sync_data():
 
     for key in api_call_keys:
         api_id = key.split(":")[1]
-        
+    # ── NEW: Ignore traffic for APIs not in the inventory ──
+        if not inventory.find_one({"api_id": api_id}):
+            print(f"[!] Skipping unknown API '{api_id}' — not in inventory. Cleaning up Redis key.")
+            r.delete(key)
+            r.delete(f"api:{api_id}:ips")
+            continue
         # --- A. CALL COUNT SYNC ---
         new_calls = int(r.getset(key, 0) or 0)
         
